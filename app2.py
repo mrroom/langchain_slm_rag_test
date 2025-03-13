@@ -11,14 +11,29 @@ import os
 from datetime import datetime
 from typing import List, Dict, Any
 import glob
+from dotenv import load_dotenv
 
-# PostgreSQL 연결 정보
-CONNECTION_STRING = "postgresql+psycopg2://postgres:swbang2413@localhost:5432/postgres"
+# .env 파일 로드
+load_dotenv()
+
+# PostgreSQL 연결 정보를 환경 변수에서 가져오기
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST')
+DB_PORT = os.getenv('DB_PORT')
+DB_NAME = os.getenv('DB_NAME')
+
+# 연결 문자열 생성
+CONNECTION_STRING = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 class DocumentProcessor:
     
     def __init__(self, collection_name: str):
         self.COLLECTION_NAME = collection_name
+        
+        # 환경 변수 검증
+        if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
+            raise ValueError("데이터베이스 연결 정보가 완전하지 않습니다. .env 파일을 확인해주세요.")
         
         # 한국어 임베딩 모델 초기화
         self.embeddings = HuggingFaceEmbeddings(
@@ -144,15 +159,35 @@ class DocumentProcessor:
             print(f"검색 중 오류 발생: {str(e)}")
             return []
 
-def main():
+def process_documents_command():
+    """문서 처리 및 벡터 저장 명령"""
     try:
-        # 문서 처리기 초기화
-        collection_name = "korean_documents_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+        # 환경 변수 검증
+        required_env_vars = ['DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME']
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        
+        if missing_vars:
+            print(f"다음 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
+            print("'.env' 파일을 확인해주세요.")
+            return
+
+        # 컬렉션 이름 파일에서 읽기 또는 새로 생성
+        collection_file = "collection_name.txt"
+        if os.path.exists(collection_file):
+            with open(collection_file, 'r') as f:
+                collection_name = f.read().strip()
+            print(f"기존 컬렉션 사용: {collection_name}")
+        else:
+            collection_name = "korean_documents_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+            with open(collection_file, 'w') as f:
+                f.write(collection_name)
+            print(f"새 컬렉션 생성: {collection_name}")
+
         processor = DocumentProcessor(collection_name)
         
         # 문서 로드
         print("\n문서 로드 중...")
-        documents_dir = "./documents"  # 문서 디렉토리 경로
+        documents_dir = "./documents"
         if not os.path.exists(documents_dir):
             print(f"documents 디렉토리가 없습니다. 생성합니다: {documents_dir}")
             os.makedirs(documents_dir)
@@ -168,29 +203,70 @@ def main():
             print("\n벡터 저장소에 추가 중...")
             added_count = processor.add_to_vectorstore(processed_docs)
             print(f"총 {added_count}개의 청크가 저장됨")
-            
-            # 검색 테스트
-            print("\n검색 테스트:")
-            test_queries = [
-                "인공지능 기술",
-                "데이터 분석 방법",
-                "프로젝트 관리"
-            ]
-            
-            for query in test_queries:
-                print(f"\n[검색어]: {query}")
-                results = processor.search(query, k=3)
-                
-                print("\n[검색 결과]:")
-                for i, result in enumerate(results, 1):
-                    print(f"\n{i}. 문서 출처: {result['metadata']['filename']}")
-                    print(f"   텍스트: {result['text'][:200]}...")
-                    print(f"   유사도 점수: {result['score']:.4f}")
         else:
             print("처리할 문서가 없습니다. documents 폴더에 문서를 추가해주세요.")
-        
+
     except Exception as e:
-        print(f"실행 중 오류 발생: {str(e)}")
+        print(f"문서 처리 중 오류 발생: {str(e)}")
+
+def search_documents_command():
+    """문서 검색 명령"""
+    try:
+        # 컬렉션 이름 읽기
+        collection_file = "collection_name.txt"
+        if not os.path.exists(collection_file):
+            print("먼저 문서를 처리해주세요.")
+            return
+            
+        with open(collection_file, 'r') as f:
+            collection_name = f.read().strip()
+
+        processor = DocumentProcessor(collection_name)
+        
+        while True:
+            print("\n검색어를 입력하세요 (종료하려면 'q' 입력):")
+            query = input().strip()
+            
+            if query.lower() == 'q':
+                break
+                
+            if not query:
+                print("검색어를 입력해주세요.")
+                continue
+                
+            results = processor.search(query, k=3)
+            
+            print("\n[검색 결과]:")
+            if not results:
+                print("검색 결과가 없습니다.")
+                continue
+                
+            for i, result in enumerate(results, 1):
+                print(f"\n{i}. 문서 출처: {result['metadata']['filename']}")
+                print(f"   텍스트: {result['text'][:200]}...")
+                print(f"   유사도 점수: {result['score']:.4f}")
+
+    except Exception as e:
+        print(f"검색 중 오류 발생: {str(e)}")
+
+def main():
+    while True:
+        print("\n=== 문서 검색 시스템 ===")
+        print("1. 문서 처리 및 벡터 저장")
+        print("2. 문서 검색")
+        print("3. 종료")
+        
+        choice = input("\n선택하세요 (1-3): ").strip()
+        
+        if choice == '1':
+            process_documents_command()
+        elif choice == '2':
+            search_documents_command()
+        elif choice == '3':
+            print("\n프로그램을 종료합니다.")
+            break
+        else:
+            print("\n잘못된 선택입니다. 다시 선택해주세요.")
 
 if __name__ == "__main__":
     main()
