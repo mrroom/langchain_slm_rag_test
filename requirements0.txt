@@ -1,0 +1,16 @@
+# RAG 시스템 필수 패키지
+langchain
+langchain-community
+psycopg2
+pgvector
+transformers>=4.30.0
+torch>=2.0.0
+numpy>=1.21.0
+python-dotenv
+sentence-transformers>=2.2.2
+accelerate>=0.20.3
+protobuf
+safetensors
+einops
+scikit-learn>=1.0.2
+
