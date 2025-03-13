@@ -76,6 +76,7 @@ python rag_app.py
 ```bash
 # 1. 가상환경 설정
 python -m venv venv
+python3 -m venv venv --without-pip
 source venv/bin/activate
 
 # 2. 패키지 설치
