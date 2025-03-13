@@ -143,7 +143,7 @@ class DocumentProcessor:
             # 결과 필터링 및 정렬
             filtered_results = []
             for doc, score in results_with_scores:
-                similarity_score = 1.0 / (1.0 + score)
+                similarity_score = 1.0 / (1.0 + score) # 거리를 유사도 점수로 변환
                 if similarity_score >= score_threshold:
                     filtered_results.append({
                         'text': doc.page_content,
@@ -151,7 +151,7 @@ class DocumentProcessor:
                         'score': similarity_score
                     })
             
-            # 점수순 정렬
+            # 점수로 정렬하고 상위 k개만 선택
             filtered_results.sort(key=lambda x: x['score'], reverse=True)
             return filtered_results[:k]
             
