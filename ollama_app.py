@@ -12,7 +12,7 @@ class GemmaChatBot:
         try:
             # Ollama 모델 설정
             self.chat_model = ChatOllama(
-                model="gemma3:1b",
+                model="gemma3:4b",
                 base_url="http://localhost:11434",
                 callbacks=[StreamingStdOutCallbackHandler()],
                 temperature=0.7,

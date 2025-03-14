@@ -10,7 +10,7 @@ class GemmaAgent:
         print("Gemma 에이전트를 초기화하는 중입니다...")
         
         self.base_url = "http://localhost:11434"
-        self.model = "gemma3:1b"
+        self.model = "gemma3:4b"
         self.available_functions = {
             "get_current_weather": self.get_current_weather,
             "get_current_time": self.get_current_time,
