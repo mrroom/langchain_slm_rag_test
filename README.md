@@ -75,6 +75,8 @@ python rag_app.py
 ### 챗봇 시스템
 ```bash
 # 1. 가상환경 설정
+sudo update-alternatives --config python3
+
 python -m venv venv
 python3 -m venv venv --without-pip
 source venv/bin/activate
